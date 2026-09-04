@@ -1,6 +1,9 @@
 dist
 .venv
 .env
+docker/overrides/**
+!docker/overrides/.gitkeep
+!docker/overrides/orchestrator.env.example
 *.egg-info
 __pycache__/
 .pytest_cache/
