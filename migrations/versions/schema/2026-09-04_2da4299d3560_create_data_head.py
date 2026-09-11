@@ -10,7 +10,7 @@ Create Date: 2026-09-04T00:00:00.000000
 revision = "2da4299d3560"
 down_revision = None
 branch_labels = ("data",)
-depends_on = "263aedd1b28d"
+depends_on = "3b3fe1c2a7a6"
 
 
 def upgrade() -> None:
