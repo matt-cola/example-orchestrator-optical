@@ -1,0 +1,12 @@
+services:
+  orchestrator:
+    ports: !override
+      - "192.168.0.42:8080:8080"
+      - "127.0.0.1:5678:5678"
+  orchestrator-ui:
+    ports: !override
+      - "192.168.0.42:3000:3000"
+    environment:
+      ORCHESTRATOR_API_HOST: http://192.168.0.42:8080
+      ORCHESTRATOR_GRAPHQL_HOST: http://192.168.0.42:8080
+      ORCHESTRATOR_WEBSOCKET_URL: ws://192.168.0.42:8080/api/ws/events
