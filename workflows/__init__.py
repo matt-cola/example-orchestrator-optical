@@ -35,6 +35,7 @@ LazyWorkflowInstance("orchestrator.optical.workflows.optical_pipe.fiber_patch.re
 LazyWorkflowInstance("orchestrator.optical.workflows.optical_pipe.fiber_span.reconcile_fiber_span", "reconcile_fiber_span"),
 LazyWorkflowInstance("orchestrator.optical.workflows.optical_pipe.leased_spectrum.reconcile_leased_spectrum", "reconcile_leased_spectrum"),
 LazyWorkflowInstance("orchestrator.optical.workflows.optical_spectrum_service.reconcile_optical_spectrum_service", "reconcile_optical_spectrum"),
+LazyWorkflowInstance("orchestrator.optical.workflows.optical_digital_service.reconcile_optical_digital_service", "reconcile_optical_digital_service"),
 LazyWorkflowInstance("orchestrator.optical.workflows.optical_pipe.fiber_patch.terminate_fiber_patch", "terminate_fiber_patch"),
 LazyWorkflowInstance("orchestrator.optical.workflows.optical_pipe.fiber_span.terminate_fiber_span", "terminate_fiber_span"),
 LazyWorkflowInstance("orchestrator.optical.workflows.optical_pipe.leased_spectrum.terminate_leased_spectrum", "terminate_leased_spectrum"),
