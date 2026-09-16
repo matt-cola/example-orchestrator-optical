@@ -55,3 +55,5 @@ LazyWorkflowInstance("orchestrator.optical.workflows.optical_node.nokia_flexils.
 LazyWorkflowInstance("orchestrator.optical.workflows.optical_node.nokia_groove_g30.validate_nokia_groove_g30", "validate_optical_node_nokia_groove_g30"),
 LazyWorkflowInstance("orchestrator.optical.workflows.optical_node.nokia_gx_g42.validate_nokia_gx_g42", "validate_optical_node_nokia_gx_g42"),
 LazyWorkflowInstance("orchestrator.optical.workflows.optical_spectrum_service.validate_optical_spectrum_service", "validate_optical_spectrum"),
+LazyWorkflowInstance("orchestrator.optical.workflows.tasks.bulk_create_optical_nodes", "bulk_create_optical_nodes"),
+LazyWorkflowInstance("orchestrator.optical.workflows.tasks.bulk_create_optical_pipes", "bulk_create_optical_pipes"),
