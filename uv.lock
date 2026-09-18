@@ -281,6 +281,21 @@ wheels = [
 ]
 
 [[package]]
+name = "cmd2"
+version = "4.2.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "prompt-toolkit" },
+    { name = "pyperclip" },
+    { name = "rich" },
+    { name = "rich-argparse" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/90/a3/79b8f326f79cdb35535cdd2dfdccfb835c25cd8d5ad1530118aa0db1fcd2/cmd2-4.2.4.tar.gz", hash = "sha256:9aac11583994f6b22fab6464180490cc3a336d46eb682f1438acebe3c0bbe53d", size = 737716, upload-time = "2026-09-08T21:09:28.62Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1f/2d/7c9b54c8afad71002bc14b8f817a94a239ef856df38f036efd46eee3b680/cmd2-4.2.4-py3-none-any.whl", hash = "sha256:f08af122f1e027cd19a5f015dbb7228d5c389955669731b5b83ee7feedd20f31", size = 196379, upload-time = "2026-09-08T21:09:27.107Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -396,10 +411,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "orchestrator-core" },
+    { name = "orchestrator-shell" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "orchestrator-core", specifier = "==5.1.3" }]
+requires-dist = [
+    { name = "orchestrator-core", specifier = "==5.1.3" },
+    { name = "orchestrator-shell", specifier = ">=2.1.0" },
+]
 
 [[package]]
 name = "fastapi"
@@ -1021,6 +1040,20 @@ wheels = [
 ]
 
 [[package]]
+name = "orchestrator-shell"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cmd2" },
+    { name = "orchestrator-core" },
+    { name = "tabulate" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/f5/0d4dc7c9f3f2c85eedaf376a346fec374d86e5e8bf3e180d42bb58426a27/orchestrator_shell-2.1.0.tar.gz", hash = "sha256:b64d0d7a3c0aa345af780a2803d8518e78a79c736f30432d9e5b4045448400be", size = 16398, upload-time = "2026-06-30T11:56:50.598Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/d0/7ffcc04e4ecd79d6f5a60342da115983a08e7907561c9157eab8b02c706b/orchestrator_shell-2.1.0-py3-none-any.whl", hash = "sha256:796f9ee6ac19436720d5fa868c3293849ecca76dfba4c8e67115becf64b88996", size = 22173, upload-time = "2026-06-30T11:56:49.462Z" },
+]
+
+[[package]]
 name = "orjson"
 version = "3.11.9"
 source = { registry = "https://pypi.org/simple" }
@@ -1068,6 +1101,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/1b/fb/d9aa83ffe43ce1f19e557c0971d04b90561b0cfd50762aafb01968285553/prometheus_client-0.25.0.tar.gz", hash = "sha256:5e373b75c31afb3c86f1a52fa1ad470c9aace18082d39ec0d2f918d11cc9ba28", size = 86035, upload-time = "2026-04-09T19:53:42.359Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8d/9b/d4b1e644385499c8346fa9b622a3f030dce14cd6ef8a1871c221a17a67e7/prometheus_client-0.25.0-py3-none-any.whl", hash = "sha256:d5aec89e349a6ec230805d0df882f3807f74fd6c1a2fa86864e3c2279059fed1", size = 64154, upload-time = "2026-04-09T19:53:41.324Z" },
+]
+
+[[package]]
+name = "prompt-toolkit"
+version = "3.0.53"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wcwidth" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7d/ea/39b988c938f75cb75d7045b5c69f8bfed47ee2152c8837fb403de29d6fb8/prompt_toolkit-3.0.53.tar.gz", hash = "sha256:9ec8a0ad96d5c56148b3f914aa79c1564c3fde5d2e6b876e7bc327e353cf8fa6", size = 435492, upload-time = "2026-07-26T20:56:14.758Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/54/6f/84908cad2d6aa5144abcf7b42709fe4fdb459bc640ec7ac5786e7693dabc/prompt_toolkit-3.0.53-py3-none-any.whl", hash = "sha256:01c0891d7f9237d5e339f7d3e42cdae80b7534abb1c7c0e3352efba6231492f2", size = 392288, upload-time = "2026-07-26T20:56:12.512Z" },
 ]
 
 [[package]]
@@ -1253,6 +1298,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyperclip"
+version = "1.11.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/52/d87eba7cb129b81563019d1679026e7a112ef76855d6159d24754dbd2a51/pyperclip-1.11.0.tar.gz", hash = "sha256:244035963e4428530d9e3a6101a1ef97209c6825edab1567beac148ccc1db1b6", size = 12185, upload-time = "2025-09-26T14:40:37.245Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/df/80/fc9d01d5ed37ba4c42ca2b55b4339ae6e200b456be3a1aaddf4a9fa99b8c/pyperclip-1.11.0-py3-none-any.whl", hash = "sha256:299403e9ff44581cb9ba2ffeed69c7aa96a008622ad0c46cb575ca75b5b84273", size = 11063, upload-time = "2025-09-26T14:40:36.069Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -1390,6 +1444,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c0/8f/0722ca900cc807c13a6a0c696dacf35430f72e0ec571c4275d2371fca3e9/rich-15.0.0.tar.gz", hash = "sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36", size = 230680, upload-time = "2026-04-12T08:24:00.75Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl", hash = "sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb", size = 310654, upload-time = "2026-04-12T08:24:02.83Z" },
+]
+
+[[package]]
+name = "rich-argparse"
+version = "1.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6a/e5/1064c43203a357d668cd42435f7a15fe6af51512d85b2104fecb937aa861/rich_argparse-1.8.0.tar.gz", hash = "sha256:679df3d832fa94ad6e4bdb07ded088cd7ea2dddc58ae9b2b46346a40b06cbc0c", size = 38940, upload-time = "2026-05-01T15:18:43.604Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0b/35/1cceccc5fcb50fa2ed53e2aa278cd032f3902682a73e763fb1ac3be8e6fa/rich_argparse-1.8.0-py3-none-any.whl", hash = "sha256:d2a3ce7854654e2253c578763ab0a32f05016f23a55fadba7b9a91b6c0e92142", size = 25616, upload-time = "2026-05-01T15:18:42.395Z" },
 ]
 
 [[package]]
@@ -1768,6 +1834,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/53/fd/2e812bf938406d7db351f0703ddd3fc6c061cf30d96153a77bc79a943a44/watchfiles-1.2.0-cp313-cp313t-manylinux_2_31_riscv64.whl", hash = "sha256:20aa0e708b920bde876a4aa82dc7dd6ebea228a63a67cda6632c2fc87b787efa", size = 463537, upload-time = "2026-05-18T04:31:44.9Z" },
     { url = "https://files.pythonhosted.org/packages/86/56/d17a7f1dd1bc3035f1072694a551301272f1739c2d8e319c927cb9e29b38/watchfiles-1.2.0-cp313-cp313t-musllinux_1_1_aarch64.whl", hash = "sha256:d413349d565dab74297f2a63e84a097936be69bf8f3b3801f27f380e32040f44", size = 629194, upload-time = "2026-05-18T04:31:14.141Z" },
     { url = "https://files.pythonhosted.org/packages/be/06/f1ff66bf5cae50aa4062779a0ecd0bbaf15e466195719074078947d9a17d/watchfiles-1.2.0-cp313-cp313t-musllinux_1_1_x86_64.whl", hash = "sha256:f28b2725eb8cce327b9b3ab02415c853011dc55c95832fe90de6bc56f5315f72", size = 656194, upload-time = "2026-05-18T04:31:47.14Z" },
+]
+
+[[package]]
+name = "wcwidth"
+version = "0.8.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/7a/f98d4ada7c499565ab0c0fcef28a4e54fafa72b8228a6309803c80493c92/wcwidth-0.8.4.tar.gz", hash = "sha256:2dae09efa25253ae2874188e86d6861af3b1652aef4118cdf3f0bda288a957fb", size = 414609, upload-time = "2026-09-17T23:31:45.287Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/39/cc/9c0adc5861020de426ec71716b6c1bef8d90694b7d6d0a16202cdb1647f5/wcwidth-0.8.4-py3-none-any.whl", hash = "sha256:2097bb1d28a0ba8fe177c2eb607317f9b1627b03f33ebebfd3da670b337a65ba", size = 299474, upload-time = "2026-09-17T23:31:43.816Z" },
 ]
 
 [[package]]

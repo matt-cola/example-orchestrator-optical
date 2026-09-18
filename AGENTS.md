@@ -18,7 +18,7 @@ Compose (postgres/pgvector, redis, orchestrator-core backend, orchestrator-ui).
 ├── docker/
 │   ├── orchestrator/         #   entrypoint.sh (provisioning sequence), orchestrator.env, is_healthy.py
 │   ├── orchestrator-ui/      #   orchestrator-ui.env
-│   └── postgresql/           #   no init scripts needed
+│   └── postgresql/           #   only a README (no init scripts; pgvector ships in the image)
 ├── migrations/               # Alembic env (from core), + versions/schema holding ONLY the data-head anchor
 ├── products/__init__.py      # imports the module's products -> registers the shipped product types
 ├── workflows/                # __init__.py (LazyWorkflowInstance list) + customer.py (static customer choice)
@@ -41,7 +41,9 @@ The orchestrator container boots and, in this exact order:
 3. `cp` the module's `translations/en-GB.json` over `translations/en-GB.json` — core deep-merges `TRANSLATIONS_DIR` over its own defaults.
 4. `python main.py db upgrade heads` — **plural** (two heads; see Migrations).
 5. `python main.py index subscriptions|products|processes|workflows`.
-6. `uvicorn --host 0.0.0.0 --port 8080 wsgi:app --reload --proxy-headers`, watching `orchestrator-optical/src`, `products`, `translations`, `workflows`.
+6. `uvicorn --host 0.0.0.0 --port 8080 wsgi:app --reload --proxy-headers`, watching `products`, `translations`, `workflows` plus
+   `orchestrator-optical/src` by default — or `$CORE_OVERRIDE` instead of the module src when that directory contains a
+   `pyproject.toml` (see `entrypoint.sh`; `UVICORN_ARGS` are passed through).
 
 ### The `add_optical_module_migrations` monkeypatch (and why)
 
@@ -63,9 +65,12 @@ path; it is what lets this pre-1.0 harness apply the module's generated baseline
     directory contains a `pyproject.toml`; otherwise it uses core as pinned in `pyproject.toml`.
 - `docker/orchestrator-ui/orchestrator-ui.env` — UI env; points at the backend on host `localhost:8080`, websocket on
   `/api/ws/events`.
-- Overrides are read from `docker/overrides/*.env` (optional) if present.
-- Compose variables: `BIND_ADDRESS_<SERVICE>` (loopback bind), `POSTGRES_PORT` (5433), `ORCH_BACKEND_TAG`
-  (default `ghcr.io/workfloworchestrator/orchestrator-core:5.1.3`), `ORCH_UI_TAG`, `OPTICAL_MODULE_DIR`.
+- Overrides are read from `docker/overrides/orchestrator.env` and
+  `docker/overrides/orchestrator-ui/orchestrator-ui.env` (both optional, `required: false`) if present. Real-device
+  credentials for a non-fake stack are documented in `docker/overrides/orchestrator.env.example`.
+- Compose variables: `BIND_ADDRESS_<SERVICE>` (loopback bind, incl. `BIND_ADDRESS_ORCHESTRATOR_DEBUGPY`), `POSTGRES_PORT` (5433), `ORCH_BACKEND_TAG`
+  (default `ghcr.io/workfloworchestrator/orchestrator-core:5.1.3`), `ORCH_UI_TAG`
+  (default `ghcr.io/workfloworchestrator/example-orchestrator-ui:latest`), `OPTICAL_MODULE_DIR`.
 
 ## Migrations
 
@@ -84,11 +89,11 @@ is only a fallback for consumers needing full in-repo audit control.
 
 - The module pre-1.0 ships **no checked-in baseline**. This harness simulates the post-1.0 "shipped baseline" path
   using the module's **generated, non-committed baseline** (present as a stand-in in
-  `orchestrator-optical/src/orchestrator/optical/migrations/versions/schema/2026-09-04_263aedd1b28d_optical_baseline.py`,
+  `orchestrator-optical/src/orchestrator/optical/migrations/versions/schema/2026-09-15_3b3fe1c2a7a6_optical_baseline.py`,
   regenerated from the models) plus the editable install and the monkeypatch above.
 - `migrations/versions/schema` holds **only the empty data-head anchor**
   (`2026-09-04_2da4299d3560_create_data_head.py`): `revision="2da4299d3560"`, `down_revision=None`,
-  `branch_labels=("data",)`, `depends_on="263aedd1b28d"`. This mirrors the WFO data-head convention (see
+  `branch_labels=("data",)`, `depends_on="3b3fe1c2a7a6"`. This mirrors the WFO data-head convention (see
   `example-orchestrator/migrations/versions/schema/2023-10-24_a77227fe5455_create_data_head.py`). It is intentional
   and minimal: future consumer-owned product/data migrations chain onto `data@head`.
 
@@ -104,8 +109,8 @@ is only a fallback for consumers needing full in-repo audit control.
 - **Do not add a second data branch.** A consumer that already has a data head (typical, from
   `db migrate-domain-models`/`migrate-workflows`) uses the module's one-time `db merge <data head> <optical head>`,
   not a second anchor.
-- **Keep the core image tag in sync** with the module's pinned `orchestrator-core==5.1.3` (see `pyproject.toml` of
-  the module and `uv.lock`). The image ships a preinstalled venv; a version mismatch breaks the alembic revision
+- **Keep the core image tag in sync** with this repo's pinned `orchestrator-core==5.1.3` (see `pyproject.toml` and
+  `uv.lock`; the module itself declares a `orchestrator-core>=5` range). The image ships a preinstalled venv; a version mismatch breaks the alembic revision
   chain mid-upgrade.
 - The module's `--verify`/`verify_no_drift` gate uses singular `head` and would raise `MultipleHeads` in this
   two-head DB. That is expected; it only matters if you run the module's verify from inside a two-head consumer DB.
@@ -131,7 +136,7 @@ baseline inserts them).
 
 ## Known pre-existing noise (do NOT "fix" as a side quest)
 
-- `device_stubs.py` mirrors the module's `test/conftest.py::install_device_stubs` (HAL functions are patched by name
+- `device_stubs.py` mirrors the module's `test/support/devices.py::install_device_stubs` (HAL functions are patched by name
   into each importing workflow module); keep them in sync, but don't refactor the stub table for its own sake.
 - `migrations/env.py` and `migrations/helpers.py` are stock orchestrator-core scaffolding; `helpers.py` has an empty
   `# from orchestrator.core.migrations.helpers import *` placeholder left in place.

@@ -15,7 +15,7 @@ logic of its own — every product, product block, HAL entry point and workflow 
 ├── docker/
 │   ├── orchestrator/         # entrypoint.sh, orchestrator.env, is_healthy.py
 │   ├── orchestrator-ui/      # orchestrator-ui.env
-│   └── postgresql/           # init scripts (none needed; pgvector ships in the image)
+│   └── postgresql/           # only a README (no init scripts; pgvector ships in the image)
 ├── migrations/               # Alembic env + versions/schema (only the data-head anchor)
 ├── products/                 # imports the module's products (registers the shipped product types)
 ├── workflows/                # LazyWorkflowInstance registration + static customer choice
@@ -55,8 +55,10 @@ This starts four services:
 | `redis`            | (internal)| not published                                |
 
 On startup the orchestrator container runs the entrypoint: it syncs the pinned dependencies (`uv sync --frozen`),
-installs the module editable, provisions the database (`db upgrade heads`), indexes subscriptions/products/processes/
-workflows, and starts `uvicorn` with `--reload`.
+installs the module editable, refreshes `translations/en-GB.json` from the module's shipped strings, provisions the
+database (`db upgrade heads`), indexes subscriptions/products/processes/
+workflows, and starts `uvicorn` with `--reload` (watching `orchestrator-optical/src` by default, or `$CORE_OVERRIDE`
+when that directory contains a `pyproject.toml`).
 
 Point your browser at `http://localhost:3000/`. The backend is reachable directly at `http://localhost:8080/`.
 
@@ -71,8 +73,10 @@ OPTICAL_MODULE_DIR=/path/to/orchestrator-optical docker compose up -d --build
 ```
 
 > [!NOTE]
-> All services bind to `127.0.0.1` by default (`BIND_ADDRESS_<SERVICE>` widens them). This stack is for local
+> All services bind to `127.0.0.1` by default (`BIND_ADDRESS_<SERVICE>` widens them; see
+> `docker-compose.override.yml.example` for a LAN-bind example). This stack is for local
 > development only — it ships well-known credentials (`nwa`/`nwa`, redis password `nwa`) and no real devices.
+> Real-device credentials for a non-fake stack are documented in `docker/overrides/orchestrator.env.example`.
 
 ## Using the UI
 
@@ -81,6 +85,12 @@ The stack ships **fake devices**: no FlexILS/G30/G42/TNMS hardware exists here. 
 test suite uses, so every shipped workflow family can be exercised end to end. The fakes advertise one client port
 (`port-1/2/1`), one line port (`port-1/3.1/1.1`), transceiver mode `DP16QAM`, software version `1.0.0`, and a static
 pair of test customers.
+
+> [!IMPORTANT]
+> The fakes validate **workflow and UI integration only** — that forms render, selectors populate, steps run in
+> order and subscriptions land correctly — never device behavior. They return canned values, never raise, and the
+> `validate_*`/`reconcile_*` checks trivially accept, so a fully green fake run can still fail against real
+> hardware. Device truth lives in the module's lab-backed test suite.
 
 The module's shipped workflows are registered through `workflows/__init__.py` (one `LazyWorkflowInstance` line per
 workflow). A typical walk-through:
@@ -92,7 +102,7 @@ workflow). A typical walk-through:
 3. Confirm on the summary form and **Start workflow**; watch the process run. Create the other products bottom-up as
    the forms demand (locations → nodes → pipes → spectrum → digital service → coherent pluggable).
 4. On the **Subscriptions** page you can modify, validate or terminate any subscription through the **Actions**
-   pulldown; the reconcile workflows appear for the optical pipe families.
+   pulldown; the reconcile workflows appear for the optical pipe families plus the spectrum and digital service.
 
 ## Iterating on the module
 
@@ -148,7 +158,7 @@ post-1.0 "shipped baseline" path instead:
   revision = "2da4299d3560"
   down_revision = None
   branch_labels = ("data",)
-  depends_on = "263aedd1b28d"   # the optical baseline revision (module)
+  depends_on = "3b3fe1c2a7a6"   # the optical baseline revision (module)
   ```
 
   `down_revision` is a lineage edge; `depends_on` is a *soft ordering* dependency that creates a second root/head
@@ -173,7 +183,7 @@ With the optical baseline and the data head both present the Alembic chain has *
 
 ### The `depends_on` caveat (pre-1.0)
 
-Pre-1.0 the optical baseline id **churns**: it is a deterministic hash of the model plan (`263aedd1b28d` will change
+Pre-1.0 the optical baseline id **churns**: it is a deterministic hash of the model plan (`3b3fe1c2a7a6` will change
 when the module models change and the baseline is regenerated). When that happens, this repo's
 `migrations/versions/schema/2026-09-04_2da4299d3560_create_data_head.py` must have its `depends_on` updated to the new
 id, and the database reset (below). This is exactly why baselines are only frozen at 1.0.
@@ -181,7 +191,7 @@ id, and the database reset (below). This is exactly why baselines are only froze
 ### Keeping core in sync
 
 The orchestrator image tag in `docker-compose.yml` (`ORCH_BACKEND_TAG`, default
-`ghcr.io/workfloworchestrator/orchestrator-core:5.1.3`) must stay in sync with the module's pinned
+`ghcr.io/workfloworchestrator/orchestrator-core:5.1.3`) must stay in sync with this repo's pinned
 `orchestrator-core==5.1.3` (`pyproject.toml`/`uv.lock`): the image ships a preinstalled venv, and migrating the
 database with a different core version than the one that created it breaks the Alembic revision chain.
 

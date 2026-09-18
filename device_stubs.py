@@ -4,17 +4,17 @@ The optical workflows drive real devices (FlexILS TL1/SSH, Groove G30 / GX G42
 RESTCONF, TNMS TAPI) which do not exist in this test stack. When
 ``FAKE_DEVICES=True`` is set, this module replaces the HAL entry points with
 the same fakes the orchestrator-optical DB-backed test suite uses
-(``test/conftest.py``), so every shipped workflow family can be exercised end
+(``test/support/devices.py``), so every shipped workflow family can be exercised end
 to end through the real orchestrator-core process engine and the UI.
 
-The stub targets mirror ``test/conftest.py::install_device_stubs``: HAL
+The stub targets mirror ``test/support/devices.py::install_device_stubs``: HAL
 functions are imported by name into each workflow module, so the patch must
 target the importing module's attribute (the module whose globals perform the
 lookup). The modules are imported eagerly here because the shipped workflows
 are registered lazily and may not be imported yet when this runs.
 
 This is test scaffolding in the user code-space, not module code: the module
-itself keeps no fake logic. Keep in sync with ``test/conftest.py``.
+itself keeps no fake logic. Keep in sync with ``test/support/devices.py``.
 """
 
 import importlib
@@ -42,6 +42,16 @@ def _fake_retrieve_transceiver_modes(block: Any, port_name: str) -> list[str]:
     return list(FAKE_TRANSCEIVER_MODES)
 
 
+def _fake_retrieve_common_transceiver_modes(*args: Any, **kwargs: Any) -> list[str]:
+    """Return the faked operating modes shared by the selected line port cards.
+
+    Mirrors :func:`orchestrator.optical.hal.port.retrieve_common_transceiver_modes`, the live
+    intersection behind the Optical Digital Service transport-mode dropdown: under fakes every
+    card reports the same table, so the intersection is the full faked table.
+    """
+    return list(FAKE_TRANSCEIVER_MODES)
+
+
 def _fake_retrieve_ports_spectral_occupations(block: Any) -> dict[str, Any]:
     """Return no spectral occupations for the faked device ports."""
     return {}
@@ -65,23 +75,28 @@ def _fake_set_port_description(port: Any, description: str) -> None:
     """Set the description of the faked port."""
 
 
-def _fake_deploy_optical_circuit(*args: Any, **kwargs: Any) -> dict[str, Any]:
-    """Deploy the faked optical circuit, returning the deployment state."""
-    return {}
-
-
-def _fake_modify_optical_circuit(*args: Any, **kwargs: Any) -> dict[str, Any]:
-    """Modify the faked optical circuit, returning the modification state."""
-    return {}
-
-
 def _fake_delete_optical_circuit(*args: Any, **kwargs: Any) -> dict[str, Any]:
     """Delete the faked optical circuit, returning the deletion state."""
     return {}
 
 
+def _fake_delete_optical_circuit_oel(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Delete the faked optical circuit OEL, returning the deletion state."""
+    return {}
+
+
 def _fake_validate_optical_circuit(*args: Any, **kwargs: Any) -> None:
     """Accept the faked optical circuit as consistent."""
+
+
+def _fake_set_optical_circuit_label(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Overwrite the faked optical circuit label, returning the update state."""
+    return {}
+
+
+def _fake_ensure_optical_circuit(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Ensure the faked optical circuit, returning the converged state."""
+    return {}
 
 
 def _fake_get_signal_bandwidth(block: Any, port_name: str) -> int:
@@ -152,50 +167,36 @@ def _fake_retrieve_optical_node_role_and_software_version(block: Any, *args: Any
     return ("Transponder", FAKE_SOFTWARE_VERSION)
 
 
-def _fake_retrieve_software_version(*args: Any, **kwargs: Any) -> str:
-    """Return the faked node software version (vendor-dispatching HAL entry point)."""
-    return FAKE_SOFTWARE_VERSION
-
-
 def _fake_sleep(seconds: float) -> None:
     """Skip the faked power stabilization wait."""
 
 
-# Port-list fakes bound to the module-level port overrides.
-def _get_device_line_ports_names(block: Any) -> list[str]:
-    """Return the faked line port names of a device."""
-    return list(FAKE_LINE_PORTS)
-
-
-def _get_device_client_ports_names(block: Any) -> list[str]:
-    """Return the faked client port names of a device."""
-    return list(FAKE_CLIENT_PORTS)
-
-
-def _get_device_ports_names(block: Any) -> list[str]:
-    """Return all faked port names of a device."""
-    return list(FAKE_ALL_PORTS)
-
-
+# Port-list fake bound to the module-level port overrides.
 def _get_device_ports_by_role(block: Any, roles: Any = None) -> list[str]:
     """Return the faked port names of a device filtered by role.
 
     The seeded test nodes are Nokia FlexILS: OLS line ports are the line
-    ports, OLS add/drop (tributary) ports are the client ports.
+    ports, OLS add/drop (tributary) ports are the client ports. The transponder
+    roles are mapped the same way so the fake also serves the transponder
+    selectors (digital service).
     """
-    requested = roles if roles is not None else [OpticalPortRole.OLS_LINE, OpticalPortRole.OLS_ADD_DROP]
+    requested = (
+        roles
+        if roles is not None
+        else [
+            OpticalPortRole.OLS_LINE,
+            OpticalPortRole.OLS_ADD_DROP,
+            OpticalPortRole.TRANSPONDER_CLIENT,
+            OpticalPortRole.TRANSPONDER_LINE,
+        ]
+    )
     names: list[str] = []
     for role in requested:
-        if role is OpticalPortRole.OLS_LINE:
+        if role in (OpticalPortRole.OLS_LINE, OpticalPortRole.TRANSPONDER_LINE):
             names.extend(FAKE_LINE_PORTS)
-        elif role is OpticalPortRole.OLS_ADD_DROP:
+        elif role in (OpticalPortRole.OLS_ADD_DROP, OpticalPortRole.TRANSPONDER_CLIENT):
             names.extend(FAKE_CLIENT_PORTS)
     return list(dict.fromkeys(names))
-
-
-def _retrieve_transceiver_modes(block: Any, port_name: str) -> list[str]:
-    """Return the faked transceiver modes of a device port (ODS family)."""
-    return list(FAKE_TRANSCEIVER_MODES)
 
 
 #: Stub table: family -> module whose namespace performs the lookup -> attribute -> fake.
@@ -204,81 +205,78 @@ STUBS: dict[str, dict[str, dict[str, Callable[..., Any]]]] = {
         "orchestrator.optical.workflows.optical_node.shared.retrieve": {
             "_retrieve_optical_node_role_and_software_version": _fake_retrieve_optical_node_role_and_software_version,
         },
-        # The node validate steps import the HAL dispatcher directly
-        # (retrieve_software_version), so the patch target is their namespace.
-        "orchestrator.optical.workflows.optical_node.shared.validate": {
-            "retrieve_software_version": _fake_retrieve_software_version,
-        },
     },
     "pipe": {
+        "orchestrator.optical.workflows.shared": {
+            "get_device_ports_by_role": _get_device_ports_by_role,
+        },
         "orchestrator.optical.workflows.optical_pipe.shared": {
             "check_fiber_terminating_port": _fake_check_fiber_terminating_port,
             "configure_termination_when_attaching_new_fiber": _fake_configure_termination_when_attaching_new_fiber,
             "get_device_ports_by_role": _get_device_ports_by_role,
             "retrieve_ports_spectral_occupations": _fake_retrieve_ports_spectral_occupations,
         },
-        "orchestrator.optical.workflows.optical_pipe.fiber_span.terminate": {
+        "orchestrator.optical.workflows.optical_pipe.fiber_span.terminate_fiber_span": {
             "factory_reset_port_configuration": _fake_factory_reset_port_configuration,
         },
-        "orchestrator.optical.workflows.optical_pipe.fiber_patch.terminate": {
+        "orchestrator.optical.workflows.optical_pipe.fiber_patch.terminate_fiber_patch": {
             "factory_reset_port_configuration": _fake_factory_reset_port_configuration,
         },
-        "orchestrator.optical.workflows.optical_pipe.leased_spectrum.terminate": {
+        "orchestrator.optical.workflows.optical_pipe.leased_spectrum.terminate_leased_spectrum": {
             "factory_reset_port_configuration": _fake_factory_reset_port_configuration,
         },
     },
     "spectrum": {
+        "orchestrator.optical.workflows.shared": {
+            "get_device_ports_by_role": _get_device_ports_by_role,
+        },
         "orchestrator.optical.workflows.optical_spectrum_service.shared": {
-            "get_device_client_ports_names": _get_device_client_ports_names,
             "retrieve_ports_spectral_occupations": _fake_retrieve_ports_spectral_occupations,
-        },
-        "orchestrator.optical.workflows.optical_spectrum_service.create_optical_spectrum": {
-            "set_port_description": _fake_set_port_description,
-            "deploy_optical_circuit": _fake_deploy_optical_circuit,
-        },
-        "orchestrator.optical.workflows.optical_spectrum_service.modify_optical_spectrum": {
-            "modify_optical_circuit": _fake_modify_optical_circuit,
-        },
-        "orchestrator.optical.workflows.optical_spectrum_service.terminate_optical_spectrum": {
-            "delete_optical_circuit": _fake_delete_optical_circuit,
-        },
-        "orchestrator.optical.workflows.optical_spectrum_service.validate_optical_spectrum": {
+            "ensure_optical_circuit": _fake_ensure_optical_circuit,
             "validate_optical_circuit": _fake_validate_optical_circuit,
+            "delete_optical_circuit": _fake_delete_optical_circuit,
+            "delete_optical_circuit_oel": _fake_delete_optical_circuit_oel,
+        },
+        "orchestrator.optical.workflows.optical_spectrum_service.create_optical_spectrum_service": {
+            "set_port_description": _fake_set_port_description,
+        },
+        "orchestrator.optical.workflows.optical_spectrum_service.modify_optical_spectrum_service": {
+            "ensure_optical_circuit": _fake_ensure_optical_circuit,
         },
     },
     "ods": {
-        "orchestrator.optical.workflows.optical_spectrum_service.shared": {
-            "get_device_client_ports_names": _get_device_client_ports_names,
-            "retrieve_transceiver_modes": _retrieve_transceiver_modes,
-            "retrieve_ports_spectral_occupations": _fake_retrieve_ports_spectral_occupations,
+        "orchestrator.optical.workflows.shared": {
+            "get_device_ports_by_role": _get_device_ports_by_role,
         },
-        "orchestrator.optical.workflows.optical_digital_service.create_optical_digital_service": {
+        "orchestrator.optical.workflows.optical_digital_service.shared": {
+            "retrieve_common_transceiver_modes": _fake_retrieve_common_transceiver_modes,
+            "retrieve_transceiver_modes": _fake_retrieve_transceiver_modes,
             "configure_line_transceivers": _fake_configure_line_transceivers,
             "configure_transceiver_client": _fake_configure_transceiver_client,
             "configure_transponder_crossconnect": _fake_configure_transponder_crossconnect,
-            "get_signal_bandwidth": _fake_get_signal_bandwidth,
-            "delta_rx_power_vs_target": _fake_delta_rx_power_vs_target,
-            "align_tx_power_to_target": _fake_align_tx_power_to_target,
-            "deploy_optical_circuit": _fake_deploy_optical_circuit,
-            "sleep": _fake_sleep,
-        },
-        "orchestrator.optical.workflows.optical_digital_service.modify_optical_digital_service": {
-            "get_signal_bandwidth": _fake_get_signal_bandwidth,
-            "modify_optical_circuit": _fake_modify_optical_circuit,
-            "sleep": _fake_sleep,
-        },
-        "orchestrator.optical.workflows.optical_digital_service.terminate_optical_digital_service": {
             "delete_transponder_crossconnect": _fake_delete_transponder_crossconnect,
             "factory_reset_transponder_client": _fake_factory_reset_transponder_client,
             "factory_reset_transponder_lines": _fake_factory_reset_transponder_lines,
-            "delete_optical_circuit": _fake_delete_optical_circuit,
-        },
-        "orchestrator.optical.workflows.optical_digital_service.validate_optical_digital_service": {
             "get_signal_bandwidth": _fake_get_signal_bandwidth,
+            "delta_rx_power_vs_target": _fake_delta_rx_power_vs_target,
+            "align_tx_power_to_target": _fake_align_tx_power_to_target,
             "validate_trx_line": _fake_validate_trx_line,
             "validate_trx_client": _fake_validate_trx_client,
             "validate_trx_crossconnect": _fake_validate_trx_crossconnect,
+            "ensure_optical_circuit": _fake_ensure_optical_circuit,
+            "set_optical_circuit_label": _fake_set_optical_circuit_label,
             "validate_optical_circuit": _fake_validate_optical_circuit,
+            "sleep": _fake_sleep,
+        },
+        "orchestrator.optical.workflows.optical_spectrum_service.shared": {
+            "delete_optical_circuit": _fake_delete_optical_circuit,
+            "delete_optical_circuit_oel": _fake_delete_optical_circuit_oel,
+        },
+        "orchestrator.optical.workflows.optical_digital_service.create_optical_digital_service": {
+            "sleep": _fake_sleep,
+        },
+        "orchestrator.optical.workflows.optical_digital_service.modify_optical_digital_service": {
+            "sleep": _fake_sleep,
         },
     },
 }
