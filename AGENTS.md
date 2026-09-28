@@ -91,11 +91,10 @@ is only a fallback for consumers needing full in-repo audit control.
   using the module's **generated, non-committed baseline** (present as a stand-in in
   `orchestrator-optical/src/orchestrator/optical/migrations/versions/schema/2026-09-15_3b3fe1c2a7a6_optical_baseline.py`,
   regenerated from the models) plus the editable install and the monkeypatch above.
-- `migrations/versions/schema` holds **only the empty data-head anchor**
-  (`2026-09-04_2da4299d3560_create_data_head.py`): `revision="2da4299d3560"`, `down_revision=None`,
-  `branch_labels=("data",)`, `depends_on="3b3fe1c2a7a6"`. This mirrors the WFO data-head convention (see
-  `example-orchestrator/migrations/versions/schema/2023-10-24_a77227fe5455_create_data_head.py`). It is intentional
-  and minimal: future consumer-owned product/data migrations chain onto `data@head`.
+- `migrations/versions/schema` holds the consumer `data` branch: `a5c6e2ea6d8d` (copied GARR PoP catalog, root)
+  → `2da4299d3560` anchor (`down_revision="a5c6e2ea6d8d"`, `depends_on` the optical baseline) →
+  `7c3d24b9d5b4` composition (PoP→location relation + backfill task row). The anchor is no longer
+  `down_revision=None`; keep the chain order when adding consumer migrations.
 
 ### Hard rules (migrations)
 
@@ -122,7 +121,12 @@ Registration is the **consumer's job** (per the module's rules): `workflows/__in
 workflows (discoverable via `python -c "import orchestrator.optical.workflows"` or the module README). **Keep this
 list in sync when the module ships new workflows** — a missing line means the workflow never appears in the UI, and a
 stale line breaks registration. Workflows are persisted to the database by the entrypoint's `db upgrade heads` (the
-baseline inserts them).
+baseline inserts them). Both consumption paths are registered on purpose: the shipped `optical_location`
+workflows (path 1, product as-is) and the consumer-owned PoP workflows (`workflows/pop/`, path 2, composition)
+plus the backfill task (`workflows/tasks/backfill_pop_optical_blocks.py`).
+Core 5.1.3 lesson behind this: the workflows-list GraphQL query resolves **every** workflows-table row to an
+in-memory workflow, so every row needs its `LazyWorkflowInstance` line — deregistering would also require
+deleting the rows (core's own "dangling workflows" doctrine), which we deliberately avoid for module-owned rows.
 
 ## Hard rules
 
@@ -130,8 +134,12 @@ baseline inserts them).
   deployments, not here. Do not reintroduce anything beyond the static test customers and the device stubs.
 - **Never edit `products/` models or the module.** This repo imports the module's products wholesale; model changes
   land here only by upgrading the module. Don't "fix" module issues from this repo.
-- **`hal/` depends on blocks, never workflows, never consumer models** (module invariant). Respect it when adding
-  anything that reaches into the module.
+- **PoP anti-corruption example (explicit exception to the two rules above).** `products/product_blocks/pop.py`,
+  `products/product_types/pop.py`, `workflows/pop/`, `workflows/tasks/backfill_pop_optical_blocks.py`, the `a5c6e2ea6d8d` migration and the composition migration are
+  a deliberate consumer-owned example (GARR-derived PoP composed with the shipped location block, backfilled by a
+  task). New files only — the shipped `import orchestrator.optical.products` line and every module file stay
+  untouched. GARR deviations (required coords at PROVISIONING, Optional composed field, no NetBox/partner) are
+  documented at each site; keep them in sync with the docs if the example changes.
 - **Do not check in secrets.** The stack's `nwa`/`nwa` credentials are intentional and well-known dev-only values.
 
 ## Known pre-existing noise (do NOT "fix" as a side quest)

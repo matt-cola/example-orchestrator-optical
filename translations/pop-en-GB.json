@@ -1,0 +1,9 @@
+{
+   "workflow": {
+      "create_pop": "create Point of Presence",
+      "modify_pop": "modify Point of Presence",
+      "terminate_pop": "terminate Point of Presence",
+      "validate_pop": "validate Point of Presence",
+      "backfill_pop_optical_blocks": "backfill PoP optical location blocks"
+   }
+}

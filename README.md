@@ -104,6 +104,29 @@ workflow). A typical walk-through:
 4. On the **Subscriptions** page you can modify, validate or terminate any subscription through the **Actions**
    pulldown; the reconcile workflows appear for the optical pipe families plus the spectrum and digital service.
 
+## PoP anti-corruption example
+
+Beyond the shipped catalog, this repo carries a consumer-owned **PoP** (Point of Presence) product that
+demonstrates consumption path 2 of the module README: a pre-existing consumer model that **has-a** the shipped
+`OpticalModuleLocationBlock` instead of inheriting it. The GARR-derived starting point
+(`products/`, `workflows/pop/`, the `a5c6e2ea6d8d` migration) is what a consumer already has in production
+*before* adopting the module; the composition migration, the `workflows/pop/sync.py` wiring and the backfill
+task are the adoption itself:
+
+- **Expand** — the composition migration relates `PoP` to `OpticalModuleLocationBlock`; every create/modify
+  dual-writes the composed block (consumer `code` normalized forward-only, e.g. `AZ99` → `az99`; name and
+  coordinates synced both ways).
+- **Migrate** — run the `backfill_pop_optical_blocks` system task to populate the composed block of
+  pre-existing PoPs (idempotent; PoPs missing coordinates are reported for manual fixing via modify).
+- **Contract** — `validate_pop` requires the composed block to be present and valid.
+
+The shipped `OpticalModuleLocation` workflows stay registered alongside the PoP ones (`workflows/__init__.py`):
+both consumption paths — the shipped product as-is and the composed consumer product — coexist in this
+deployment, sharing the block-wide `location_code` uniqueness. All other shipped families keep working unchanged — they resolve
+locations block-wide, so PoP-composed locations flow into nodes, pipes and services transparently. See
+`workflows/pop/sync.py` (the whole anti-corruption layer in one module) and `AGENTS.md` for the repo-rule
+exceptions this example relies on.
+
 ## Iterating on the module
 
 The module is mounted at `/home/orchestrator/orchestrator-optical` and installed **editable**, and uvicorn runs with
@@ -158,7 +181,7 @@ post-1.0 "shipped baseline" path instead:
   revision = "2da4299d3560"
   down_revision = None
   branch_labels = ("data",)
-  depends_on = "3b3fe1c2a7a6"   # the optical baseline revision (module)
+  depends_on = "3b3fe1c2a7a6"  # the optical baseline revision (module)
   ```
 
   `down_revision` is a lineage edge; `depends_on` is a *soft ordering* dependency that creates a second root/head

@@ -26,6 +26,38 @@ uv pip install -e /home/orchestrator/orchestrator-optical
 cp /home/orchestrator/orchestrator-optical/src/orchestrator/optical/translations/en-GB.json \
     /home/orchestrator/translations/en-GB.json
 
+# Merge consumer-owned translation fragments back over the refreshed file: the
+# copy above wipes any consumer strings, so they live in separate
+# `*-en-GB.json` fragments (e.g. the PoP example) that are deep-merged here.
+# Core deep-merges TRANSLATIONS_DIR over its own defaults at runtime.
+for fragment in /home/orchestrator/translations/*-en-GB.json; do
+    [ -e "$fragment" ] || continue
+    echo "▶ merge translations fragment $fragment"
+    python3 - "$fragment" <<'EOF'
+import json
+import sys
+
+base_path = "/home/orchestrator/translations/en-GB.json"
+
+
+def deep_merge(base, fragment):
+    for key, value in fragment.items():
+        if isinstance(value, dict) and isinstance(base.get(key), dict):
+            deep_merge(base[key], value)
+        else:
+            base[key] = value
+    return base
+
+
+with open(base_path) as f:
+    base = json.load(f)
+with open(sys.argv[1]) as f:
+    fragment = json.load(f)
+with open(base_path, "w") as f:
+    json.dump(deep_merge(base, fragment), f, indent=3)
+EOF
+done
+
 setup() {
     echo "▶ db upgrade heads"
     python main.py db upgrade heads

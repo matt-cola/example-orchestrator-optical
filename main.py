@@ -6,22 +6,22 @@ Run with ``python main.py --help`` (inside the container), e.g.::
 """
 
 import typer
+from nwastdlib.logging import initialise_logging
 from orchestrator.core import app_settings
-from orchestrator.core.cli.main import app as core_cli
-from orchestrator.core.db import init_database
-from orchestrator.core.log_config import LOGGER_OVERRIDES
-
-import db  # noqa: F401  Side-effects
-import device_stubs
-import products  # noqa: F401  Side-effects: registers the shipped product types
 
 # Wire the shipped orchestrator-optical migrations into every alembic config the
 # orchestrator-core CLI builds (the README >= 1.0 consumer path): the core CLI
 # builds its own Config from ./alembic.ini, so the shipped versions/schema
 # directory is appended by wrapping the CLI's alembic_cfg() factory.
 from orchestrator.core.cli import database as core_cli_database
+from orchestrator.core.cli.main import app as core_cli
+from orchestrator.core.db import init_database
+from orchestrator.core.log_config import LOGGER_OVERRIDES
 from orchestrator.optical.migrations import add_optical_module_migrations
-from nwastdlib.logging import initialise_logging
+
+import db  # noqa: F401  Side-effects
+import device_stubs
+import products  # noqa: F401  Side-effects: registers the shipped product types
 
 _alembic_cfg = core_cli_database.alembic_cfg
 
