@@ -9,3 +9,5 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 docker-compose.override.yml
+# Confidential vendor SDKs (see the orchestrator-optical README, "Vendor SDKs")
+vendor/

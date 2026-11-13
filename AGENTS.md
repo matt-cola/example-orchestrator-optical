@@ -8,7 +8,7 @@ deployment would, and runs it end to end through the real orchestrator-core proc
 
 This is **user code**, not module code. It adds no domain logic: every product, product block, HAL entry point and
 workflow is shipped by the module and consumed here. Its only local "business" content is a static pair of test
-customers (`workflows/customer.py`) and HAL-level fake device stubs (`device_stubs.py`). Stack: Python 3.13, Docker
+customers (`workflows/customer.py`). Stack: Python 3.13, Docker
 Compose (postgres/pgvector, redis, orchestrator-core backend, orchestrator-ui).
 
 ## Repo layout at a glance
@@ -25,9 +25,8 @@ Compose (postgres/pgvector, redis, orchestrator-core backend, orchestrator-ui).
 ├── translations/             # workflow display strings; refreshed from the module at startup
 ├── main.py                   # CLI entrypoint; monkeypatches core CLI alembic_cfg for the module migrations
 ├── wsgi.py                   # ASGI entrypoint
-├── device_stubs.py           # HAL fakes, active when FAKE_DEVICES=True
-├── pyproject.toml / uv.lock   # pins orchestrator-core==5.1.3
-└── alembic.ini, db.py        # alembic config; neutral db.py (no custom tables)
+├── pyproject.toml / uv.lock   # pins orchestrator-core==5.6.0
+└── alembic.ini, db.py        # alembic config; neutral db.py (no consumer tables)
 ```
 
 ## Operational invariants
@@ -39,7 +38,7 @@ The orchestrator container boots and, in this exact order:
 1. `uv sync --frozen` — aligns the image's preinstalled venv with `pyproject.toml`/`uv.lock` (`UV_PYTHON_DOWNLOADS=never`).
 2. `uv pip install -e /home/orchestrator/orchestrator-optical` — the module under test, **editable**, so module edits hot-reload.
 3. `cp` the module's `translations/en-GB.json` over `translations/en-GB.json` — core deep-merges `TRANSLATIONS_DIR` over its own defaults.
-4. `python main.py db upgrade heads` — **plural** (two heads; see Migrations).
+4. `python main.py db upgrade heads` — **plural** (multiple heads; see Migrations).
 5. `python main.py index subscriptions|products|processes|workflows`.
 6. `uvicorn --host 0.0.0.0 --port 8080 wsgi:app --reload --proxy-headers`, watching `products`, `translations`, `workflows` plus
    `orchestrator-optical/src` by default — or `$CORE_OVERRIDE` instead of the module src when that directory contains a
@@ -56,26 +55,27 @@ path; it is what lets this pre-1.0 harness apply the module's generated baseline
 ### Environment
 
 - `docker/orchestrator/orchestrator.env` — core config (postgres/redis URIs, `TRANSLATIONS_DIR`, `CACHE_URI`, …
-  `UVICORN_WORKERS=1` so `--reload` and in-process stubs are shared) plus module config:
+  `UVICORN_WORKERS=1`, as required by `--reload`) plus module config:
   - `OPTICAL_CUSTOMER_CHOICE="workflows.customer:customer_choice"` — the user-code-space customer selector the
     shipped workflows require (the `Choice` function lives in user code, per the module's hard rules).
-  - `FAKE_DEVICES=False` — when truthy (`1`/`true`/`yes`) `install_device_stubs_if_enabled()` swaps HAL entry points
-    for the fakes in `device_stubs.py`. There are no real FlexILS/G30/G42/TNMS devices in this stack.
+  - There are no FlexILS/G30/G42/TNMS devices in this stack and no fakes: workflows that touch a device need real,
+    reachable equipment.
   - `CORE_OVERRIDE=/home/orchestrator/orchestrator-core` — entrypoint uses an editable core checkout if that
     directory contains a `pyproject.toml`; otherwise it uses core as pinned in `pyproject.toml`.
 - `docker/orchestrator-ui/orchestrator-ui.env` — UI env; points at the backend on host `localhost:8080`, websocket on
   `/api/ws/events`.
 - Overrides are read from `docker/overrides/orchestrator.env` and
-  `docker/overrides/orchestrator-ui/orchestrator-ui.env` (both optional, `required: false`) if present. Real-device
-  credentials for a non-fake stack are documented in `docker/overrides/orchestrator.env.example`.
+  `docker/overrides/orchestrator-ui/orchestrator-ui.env` (both optional, `required: false`) if present. Device
+  credentials are documented in `docker/overrides/orchestrator.env.example`.
 - Compose variables: `BIND_ADDRESS_<SERVICE>` (loopback bind, incl. `BIND_ADDRESS_ORCHESTRATOR_DEBUGPY`), `POSTGRES_PORT` (5433), `ORCH_BACKEND_TAG`
-  (default `ghcr.io/workfloworchestrator/orchestrator-core:5.1.3`), `ORCH_UI_TAG`
+  (default `ghcr.io/workfloworchestrator/orchestrator-core:5.6.0`), `ORCH_UI_TAG`
   (default `ghcr.io/workfloworchestrator/example-orchestrator-ui:latest`), `OPTICAL_MODULE_DIR`.
 
 ## Migrations
 
-The module ships its catalog as **coded programmatic migrations** (no tables of its own). Two models coexist here;
-do not conflate them.
+The module ships its catalog as **coded programmatic migrations**, plus one table of its own
+(`optical_applied_config`, revision `7c1d5e9a4b20`, its own branch label, applied by `db upgrade heads`).
+Two models coexist here; do not conflate them.
 
 ### Long-term model (module >= 1.0)
 
@@ -98,8 +98,8 @@ is only a fallback for consumers needing full in-repo audit control.
 
 ### Hard rules (migrations)
 
-- **Always upgrade with `db upgrade heads` (plural).** With the optical head and the data head both present there are
-  two heads; singular `db upgrade head` fails with `MultipleHeads`.
+- **Always upgrade with `db upgrade heads` (plural).** With the optical catalog head, the optical
+  `optical_applied_config` head and the data head present there are multiple heads; singular `db upgrade head` fails with `MultipleHeads`.
 - **Do not regenerate/edit the module's baseline by hand here.** It is generated in the module repo from the models
   (the models are the single source of truth); treat it as a black box.
 - **Keep `depends_on` in sync.** Pre-1.0 the baseline id is a deterministic hash of the model plan, so it **churns**
@@ -108,11 +108,11 @@ is only a fallback for consumers needing full in-repo audit control.
 - **Do not add a second data branch.** A consumer that already has a data head (typical, from
   `db migrate-domain-models`/`migrate-workflows`) uses the module's one-time `db merge <data head> <optical head>`,
   not a second anchor.
-- **Keep the core image tag in sync** with this repo's pinned `orchestrator-core==5.1.3` (see `pyproject.toml` and
-  `uv.lock`; the module itself declares a `orchestrator-core>=5` range). The image ships a preinstalled venv; a version mismatch breaks the alembic revision
-  chain mid-upgrade.
+- **Keep the core image tag in sync** with this repo's pinned `orchestrator-core==5.6.0` (see `pyproject.toml` and
+  `uv.lock`; the module itself pins `orchestrator-core==5.6`). The image ships a preinstalled venv; a version
+  mismatch breaks the alembic revision chain mid-upgrade.
 - The module's `--verify`/`verify_no_drift` gate uses singular `head` and would raise `MultipleHeads` in this
-  two-head DB. That is expected; it only matters if you run the module's verify from inside a two-head consumer DB.
+  multi-head DB. That is expected; it only matters if you run the module's verify from inside a multi-head consumer DB.
 
 ## Workflow registration
 
@@ -131,7 +131,7 @@ deleting the rows (core's own "dangling workflows" doctrine), which we deliberat
 ## Hard rules
 
 - **No org-specific business logic.** This harness is a clean consumer; any GARR/NREN-specific logic belongs in user
-  deployments, not here. Do not reintroduce anything beyond the static test customers and the device stubs.
+  deployments, not here. Do not reintroduce anything beyond the static test customers.
 - **Never edit `products/` models or the module.** This repo imports the module's products wholesale; model changes
   land here only by upgrading the module. Don't "fix" module issues from this repo.
 - **PoP anti-corruption example (explicit exception to the two rules above).** `products/product_blocks/pop.py`,
@@ -144,8 +144,6 @@ deleting the rows (core's own "dangling workflows" doctrine), which we deliberat
 
 ## Known pre-existing noise (do NOT "fix" as a side quest)
 
-- `device_stubs.py` mirrors the module's `test/support/devices.py::install_device_stubs` (HAL functions are patched by name
-  into each importing workflow module); keep them in sync, but don't refactor the stub table for its own sake.
 - `migrations/env.py` and `migrations/helpers.py` are stock orchestrator-core scaffolding; `helpers.py` has an empty
   `# from orchestrator.core.migrations.helpers import *` placeholder left in place.
 - The empty data-head anchor is deliberately minimal (empty `upgrade`/`downgrade`).

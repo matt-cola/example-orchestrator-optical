@@ -12,7 +12,7 @@ cd /home/orchestrator
 # Sync the app dependencies into the image's preinstalled venv (this aligns
 # orchestrator-core with the version pinned in pyproject.toml)
 echo "▶ uv sync"
-uv sync --frozen
+uv sync --frozen --reinstall
 source .venv/bin/activate
 
 # Install the orchestrator-optical module under test, editable, so module
@@ -85,7 +85,8 @@ if [ -f "${CORE_OVERRIDE:-/home/orchestrator/orchestrator-core}/pyproject.toml" 
         --reload-dir "$CORE_OVERRIDE" \
         --reload-dir products \
         --reload-dir translations \
-        --reload-dir workflows
+        --reload-dir workflows \
+        --reload-dir vendor
 else
     setup
 
@@ -94,5 +95,6 @@ else
         --reload-dir /home/orchestrator/orchestrator-optical/src \
         --reload-dir products \
         --reload-dir translations \
-        --reload-dir workflows
+        --reload-dir workflows \
+        --reload-dir vendor
 fi

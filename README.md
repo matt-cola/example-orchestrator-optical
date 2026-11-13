@@ -6,7 +6,7 @@ real orchestrator-core process engine and the orchestrator UI.
 
 This repository is **user code**: it consumes the module like a real WFO deployment would. It contributes no domain
 logic of its own — every product, product block, HAL entry point and workflow comes from the module. Its only
-"business" content is a static pair of test customers and a set of fake device stubs.
+"business" content is a static pair of test customers.
 
 ## Repository layout
 
@@ -22,7 +22,6 @@ logic of its own — every product, product block, HAL entry point and workflow 
 ├── translations/             # workflow display strings (refreshed from the module at startup)
 ├── main.py                   # CLI entrypoint (wires the module's migrations into core CLI)
 ├── wsgi.py                   # ASGI entrypoint
-├── device_stubs.py           # HAL-level fakes (FAKE_DEVICES=True)
 ├── pyproject.toml            # pins orchestrator-core
 └── uv.lock
 ```
@@ -75,22 +74,14 @@ OPTICAL_MODULE_DIR=/path/to/orchestrator-optical docker compose up -d --build
 > [!NOTE]
 > All services bind to `127.0.0.1` by default (`BIND_ADDRESS_<SERVICE>` widens them; see
 > `docker-compose.override.yml.example` for a LAN-bind example). This stack is for local
-> development only — it ships well-known credentials (`nwa`/`nwa`, redis password `nwa`) and no real devices.
-> Real-device credentials for a non-fake stack are documented in `docker/overrides/orchestrator.env.example`.
+> development only — it ships well-known credentials (`nwa`/`nwa`, redis password `nwa`) and no devices.
+> Device credentials are documented in `docker/overrides/orchestrator.env.example`.
 
 ## Using the UI
 
-The stack ships **fake devices**: no FlexILS/G30/G42/TNMS hardware exists here. Set `FAKE_DEVICES=True` (in
-`docker/orchestrator/orchestrator.env`) to replace the HAL entry points with the same fakes the module's DB-backed
-test suite uses, so every shipped workflow family can be exercised end to end. The fakes advertise one client port
-(`port-1/2/1`), one line port (`port-1/3.1/1.1`), transceiver mode `DP16QAM`, software version `1.0.0`, and a static
-pair of test customers.
-
-> [!IMPORTANT]
-> The fakes validate **workflow and UI integration only** — that forms render, selectors populate, steps run in
-> order and subscriptions land correctly — never device behavior. They return canned values, never raise, and the
-> `validate_*`/`reconcile_*` checks trivially accept, so a fully green fake run can still fail against real
-> hardware. Device truth lives in the module's lab-backed test suite.
+The stack ships **no devices**: the shipped workflows call the module's HAL as-is, so every workflow that touches
+a device (nodes, pipes, spectrum, digital services, pluggables) needs reachable FlexILS/G30/G42/TNMS equipment and
+its credentials in `docker/overrides/orchestrator.env` (see `docker/overrides/orchestrator.env.example`).
 
 The module's shipped workflows are registered through `workflows/__init__.py` (one `LazyWorkflowInstance` line per
 workflow). A typical walk-through:
@@ -98,7 +89,7 @@ workflow). A typical walk-through:
 1. In the UI, click **New subscription** and pick a product — e.g. **Nokia FlexILS Optical Node**.
 2. Fill the form. The **customer** field is served by the static choice in `workflows/customer.py`
    (wired via `OPTICAL_CUSTOMER_CHOICE="workflows.customer:customer_choice"`); node/port forms may ask for values that
-   must match what the fake device reports.
+   must match what the device reports.
 3. Confirm on the summary form and **Start workflow**; watch the process run. Create the other products bottom-up as
    the forms demand (locations → nodes → pipes → spectrum → digital service → coherent pluggable).
 4. On the **Subscriptions** page you can modify, validate or terminate any subscription through the **Actions**
@@ -143,8 +134,10 @@ docker compose up -d --build             # rebuild if dependencies changed
 ## Migrations
 
 The module ships its catalog (products, product blocks, resource types, workflows) as **coded programmatic
-migrations** — the same way orchestrator-core provisions its own domain. The module owns no tables; everything lives
-in the core catalog tables.
+migrations** — the same way orchestrator-core provisions its own domain. The catalog lives in the core catalog tables. The module also
+owns one table, `optical_applied_config` (the configuration it applied on the devices), shipped as its own Alembic
+revision (`7c1d5e9a4b20`, branch label `optical_applied_config`) in the same `versions/schema` directory. Nothing
+extra is needed here: `add_optical_module_migrations` exposes it and the entrypoint's `db upgrade heads` applies it.
 
 ### The long-term model (module >= 1.0)
 
@@ -193,16 +186,17 @@ post-1.0 "shipped baseline" path instead:
   `src/orchestrator/optical/migrations/versions/schema/` (it is regenerated from the shipped models; the real
   checked-in baseline only happens at 1.0). The entrypoint applies it through the monkeypatch.
 
-### Two heads: always `db upgrade heads`
+### Multiple heads: always `db upgrade heads`
 
-With the optical baseline and the data head both present the Alembic chain has **two heads**. Always upgrade with
+With the optical baseline, the `optical_applied_config` branch and the data head present the Alembic chain has
+**multiple heads**. Always upgrade with
 `db upgrade heads` (plural — the WFO entrypoint convention, and what `docker/orchestrator/entrypoint.sh` runs), never
 `db upgrade head` (singular), which fails on multiple heads.
 
 > [!NOTE]
 > The module's own `--verify` / `verify_no_drift` path runs a singular `upgrade head` and would raise
-> `MultipleHeads` in this two-head setup. That is expected and only matters if you run the module's verify gate from
-> inside a two-head consumer database.
+> `MultipleHeads` in this multi-head setup. That is expected and only matters if you run the module's verify gate from
+> inside a multi-head consumer database.
 
 ### The `depends_on` caveat (pre-1.0)
 
@@ -214,8 +208,8 @@ id, and the database reset (below). This is exactly why baselines are only froze
 ### Keeping core in sync
 
 The orchestrator image tag in `docker-compose.yml` (`ORCH_BACKEND_TAG`, default
-`ghcr.io/workfloworchestrator/orchestrator-core:5.1.3`) must stay in sync with this repo's pinned
-`orchestrator-core==5.1.3` (`pyproject.toml`/`uv.lock`): the image ships a preinstalled venv, and migrating the
+`ghcr.io/workfloworchestrator/orchestrator-core:5.6.0`) must stay in sync with this repo's pinned
+`orchestrator-core==5.6.0` (`pyproject.toml`/`uv.lock`): the image ships a preinstalled venv, and migrating the
 database with a different core version than the one that created it breaks the Alembic revision chain.
 
 ## Troubleshooting

@@ -20,7 +20,6 @@ from orchestrator.core.log_config import LOGGER_OVERRIDES
 from orchestrator.optical.migrations import add_optical_module_migrations
 
 import db  # noqa: F401  Side-effects
-import device_stubs
 import products  # noqa: F401  Side-effects: registers the shipped product types
 
 _alembic_cfg = core_cli_database.alembic_cfg
@@ -37,7 +36,6 @@ core_cli_database.alembic_cfg = _alembic_cfg_with_optical_migrations
 def init_cli_app() -> typer.Typer:
     initialise_logging(LOGGER_OVERRIDES)
     init_database(app_settings)
-    device_stubs.install_device_stubs_if_enabled()
     return core_cli()
 
 

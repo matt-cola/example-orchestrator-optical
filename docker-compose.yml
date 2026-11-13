@@ -61,7 +61,7 @@ services:
     # preinstalled venv, and running `db upgrade heads` with a different core
     # version than the one the database was migrated with breaks the alembic
     # revision chain.
-    image: ${ORCH_BACKEND_TAG:-ghcr.io/workfloworchestrator/orchestrator-core:5.1.3}
+    image: ${ORCH_BACKEND_TAG:-ghcr.io/workfloworchestrator/orchestrator-core:5.6.0}
     env_file:
       - ./docker/orchestrator/orchestrator.env
       - path: ./docker/overrides/orchestrator.env
@@ -74,9 +74,11 @@ services:
       - ./main.py:/home/orchestrator/main.py
       - ./wsgi.py:/home/orchestrator/wsgi.py
       - ./db.py:/home/orchestrator/db.py
-      - ./device_stubs.py:/home/orchestrator/device_stubs.py
       - ./pyproject.toml:/home/orchestrator/pyproject.toml
       - ./uv.lock:/home/orchestrator/uv.lock
+      # Vendor SDKs referenced by [tool.uv.sources] in pyproject.toml: the module's
+      # own gitignored sdks/, the only copy (on the host, vendor/ is a symlink to it)
+      - ${OPTICAL_MODULE_DIR:-../orchestrator-optical}/sdks:/home/orchestrator/vendor
       - ./migrations:/home/orchestrator/migrations
       - ./products:/home/orchestrator/products
       - ./workflows:/home/orchestrator/workflows
