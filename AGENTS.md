@@ -7,8 +7,8 @@ An example [Workflow Orchestrator](https://workfloworchestrator.org) deployment 
 deployment would, and runs it end to end through the real orchestrator-core process engine and the orchestrator UI.
 
 This is **user code**, not module code. It adds no domain logic: every product, product block, HAL entry point and
-workflow is shipped by the module and consumed here. Its only local "business" content is a static pair of test
-customers (`workflows/customer.py`). Stack: Python 3.13, Docker
+workflow is shipped by the module and consumed here. Its only local "business" content is the consumer-owned
+`customer` product (`workflows/customer/`) and the PoP example. Stack: Python 3.13, Docker
 Compose (postgres/pgvector, redis, orchestrator-core backend, orchestrator-ui).
 
 ## Repo layout at a glance
@@ -21,7 +21,7 @@ Compose (postgres/pgvector, redis, orchestrator-core backend, orchestrator-ui).
 │   └── postgresql/           #   only a README (no init scripts; pgvector ships in the image)
 ├── migrations/               # Alembic env (from core), + versions/schema holding ONLY the data-head anchor
 ├── products/__init__.py      # imports the module's products -> registers the shipped product types
-├── workflows/                # __init__.py (LazyWorkflowInstance list) + customer.py (static customer choice)
+├── workflows/                # __init__.py (LazyWorkflowInstance list) + customer/ (customer product workflows, choice, GraphQL)
 ├── translations/             # workflow display strings; refreshed from the module at startup
 ├── main.py                   # CLI entrypoint; monkeypatches core CLI alembic_cfg for the module migrations
 ├── wsgi.py                   # ASGI entrypoint
@@ -57,7 +57,8 @@ path; it is what lets this pre-1.0 harness apply the module's generated baseline
 - `docker/orchestrator/orchestrator.env` — core config (postgres/redis URIs, `TRANSLATIONS_DIR`, `CACHE_URI`, …
   `UVICORN_WORKERS=1`, as required by `--reload`) plus module config:
   - `OPTICAL_CUSTOMER_CHOICE="workflows.customer:customer_choice"` — the user-code-space customer selector the
-    shipped workflows require (the `Choice` function lives in user code, per the module's hard rules).
+    shipped workflows require (the `Choice` function lives in user code, per the module's hard rules). It offers
+    the ACTIVE subscriptions of the `customer` product (see "Customers").
   - There are no FlexILS/G30/G42/TNMS devices in this stack and no fakes: workflows that touch a device need real,
     reachable equipment.
   - `CORE_OVERRIDE=/home/orchestrator/orchestrator-core` — entrypoint uses an editable core checkout if that
@@ -93,7 +94,7 @@ is only a fallback for consumers needing full in-repo audit control.
   regenerated from the models) plus the editable install and the monkeypatch above.
 - `migrations/versions/schema` holds the consumer `data` branch: `a5c6e2ea6d8d` (copied GARR PoP catalog, root)
   → `2da4299d3560` anchor (`down_revision="a5c6e2ea6d8d"`, `depends_on` the optical baseline) →
-  `7c3d24b9d5b4` composition (PoP→location relation + backfill task row). The anchor is no longer
+  `7c3d24b9d5b4` composition (PoP→location relation + backfill task row) → `78a0cb032e0e` customer product. The anchor is no longer
   `down_revision=None`; keep the chain order when adding consumer migrations.
 
 ### Hard rules (migrations)
@@ -131,7 +132,7 @@ deleting the rows (core's own "dangling workflows" doctrine), which we deliberat
 ## Hard rules
 
 - **No org-specific business logic.** This harness is a clean consumer; any GARR/NREN-specific logic belongs in user
-  deployments, not here. Do not reintroduce anything beyond the static test customers.
+  deployments, not here. Do not reintroduce anything beyond the customer product and the PoP example below.
 - **Never edit `products/` models or the module.** This repo imports the module's products wholesale; model changes
   land here only by upgrading the module. Don't "fix" module issues from this repo.
 - **PoP anti-corruption example (explicit exception to the two rules above).** `products/product_blocks/pop.py`,
@@ -141,6 +142,26 @@ deleting the rows (core's own "dangling workflows" doctrine), which we deliberat
   untouched. GARR deviations (required coords at PROVISIONING, Optional composed field, no NetBox/partner) are
   documented at each site; keep them in sync with the docs if the example changes.
 - **Do not check in secrets.** The stack's `nwa`/`nwa` credentials are intentional and well-known dev-only values.
+
+## Customers
+
+There is no CRM: the orchestrator is the system of record for customers (consumer-owned, explicit exception to the
+"no business logic" rule, like the PoP example).
+
+- A customer is a subscription of the `customer` product (`products/product_blocks/customer.py`,
+  `products/product_types/customer.py`, migration `78a0cb032e0e`), managed with the
+  `create|modify|terminate|validate_customer` workflows in `workflows/customer/`.
+- **`customer_id` of any subscription = `subscription_id` of its customer subscription.** A customer subscription
+  points at itself (`customer_id == subscription_id`; set in `create_customer`, checked by `validate_customer`).
+- `workflows.customer:customer_choice` lists the ACTIVE customers; the dropdown is **empty until a first customer is
+  created**.
+- Nothing links a customer to its subscriptions but the matching id, so `terminate_customer` refuses while the
+  customer still owns non-terminated subscriptions.
+- `workflows/customer/graphql.py` (registered in `wsgi.py`) overrides core's stubbed subscription `customer` field
+  and `customers` query. The **process** `customer` field is not overridable through `register_graphql` and still
+  returns core's default customer.
+- The root block field is `customer_info`, not `customer`: a product block field named `customer` clashes with
+  core's GraphQL `SubscriptionInterface.customer` and breaks the whole schema.
 
 ## Known pre-existing noise (do NOT "fix" as a side quest)
 

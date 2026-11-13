@@ -49,6 +49,12 @@ from orchestrator.core.workflows import LazyWorkflowInstance
 (LazyWorkflowInstance("workflows.pop.terminate_pop", "terminate_pop"),)
 (LazyWorkflowInstance("workflows.pop.validate_pop", "validate_pop"),)
 (LazyWorkflowInstance("workflows.tasks.backfill_pop_optical_blocks", "backfill_pop_optical_blocks"),)
+# Consumer-owned customer workflows (see workflows/customer/): customers are subscriptions of the ``customer``
+# product, and they feed the customer selector of every other workflow.
+(LazyWorkflowInstance("workflows.customer.create_customer", "create_customer"),)
+(LazyWorkflowInstance("workflows.customer.modify_customer", "modify_customer"),)
+(LazyWorkflowInstance("workflows.customer.terminate_customer", "terminate_customer"),)
+(LazyWorkflowInstance("workflows.customer.validate_customer", "validate_customer"),)
 (
     LazyWorkflowInstance(
         "orchestrator.optical.workflows.optical_node.nokia_flexils.create_nokia_flexils",

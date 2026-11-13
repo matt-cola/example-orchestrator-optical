@@ -6,7 +6,7 @@ real orchestrator-core process engine and the orchestrator UI.
 
 This repository is **user code**: it consumes the module like a real WFO deployment would. It contributes no domain
 logic of its own — every product, product block, HAL entry point and workflow comes from the module. Its only
-"business" content is a static pair of test customers.
+"business" content is a consumer-owned `customer` product (customers are subscriptions; there is no CRM).
 
 ## Repository layout
 
@@ -18,7 +18,7 @@ logic of its own — every product, product block, HAL entry point and workflow 
 │   └── postgresql/           # only a README (no init scripts; pgvector ships in the image)
 ├── migrations/               # Alembic env + versions/schema (only the data-head anchor)
 ├── products/                 # imports the module's products (registers the shipped product types)
-├── workflows/                # LazyWorkflowInstance registration + static customer choice
+├── workflows/                # LazyWorkflowInstance registration + customer product workflows and choice
 ├── translations/             # workflow display strings (refreshed from the module at startup)
 ├── main.py                   # CLI entrypoint (wires the module's migrations into core CLI)
 ├── wsgi.py                   # ASGI entrypoint
@@ -87,8 +87,9 @@ The module's shipped workflows are registered through `workflows/__init__.py` (o
 workflow). A typical walk-through:
 
 1. In the UI, click **New subscription** and pick a product — e.g. **Nokia FlexILS Optical Node**.
-2. Fill the form. The **customer** field is served by the static choice in `workflows/customer.py`
-   (wired via `OPTICAL_CUSTOMER_CHOICE="workflows.customer:customer_choice"`); node/port forms may ask for values that
+2. Fill the form. The **customer** field lists the active subscriptions of the `customer` product, so run the
+   **create customer** workflow first (served by `workflows/customer/`, wired via
+   `OPTICAL_CUSTOMER_CHOICE="workflows.customer:customer_choice"`); node/port forms may ask for values that
    must match what the device reports.
 3. Confirm on the summary form and **Start workflow**; watch the process run. Create the other products bottom-up as
    the forms demand (locations → nodes → pipes → spectrum → digital service → coherent pluggable).
@@ -229,7 +230,8 @@ database with a different core version than the one that created it breaks the A
 - **Workflow missing from the UI** — it is not in `workflows/__init__.py`, or it is not persisted. Registration is the
   consumer's job: keep the `LazyWorkflowInstance` list in sync with the module's shipped workflows and re-provision
   the database.
-- **Customer dropdown empty / form error about customer** — `OPTICAL_CUSTOMER_CHOICE` must point at a function
+- **Customer dropdown empty / form error about customer** — the dropdown lists active `customer` subscriptions:
+  create one with the **create customer** workflow. `OPTICAL_CUSTOMER_CHOICE` must point at a function
   returning a `type[Choice]` (here `workflows.customer:customer_choice`).
 - **Changes to `products/` or the module models** — this repo imports the module's products wholesale; model changes
   land here only by upgrading the module, not by editing local files.

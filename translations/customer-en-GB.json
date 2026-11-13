@@ -1,0 +1,8 @@
+{
+   "workflow": {
+      "create_customer": "create customer",
+      "modify_customer": "modify customer",
+      "terminate_customer": "terminate customer",
+      "validate_customer": "validate customer"
+   }
+}
