@@ -101,7 +101,15 @@ services:
 
   orchestrator-ui:
     container_name: orchestrator-ui
-    image: ${ORCH_UI_TAG:-ghcr.io/workfloworchestrator/example-orchestrator-ui:latest}
+    # The standard example-orchestrator-ui plus the optical map page of
+    # orchestrator-optical-ui-library, built from a checkout of that library
+    # (`docker compose build orchestrator-ui`). To run the stock UI instead,
+    # set ORCH_UI_TAG=ghcr.io/workfloworchestrator/example-orchestrator-ui:latest
+    # and start with `docker compose up --no-build`.
+    image: ${ORCH_UI_TAG:-orchestrator-optical-ui:local}
+    build:
+      context: ${OPTICAL_UI_LIBRARY_DIR:-../orchestrator-optical-ui-library}
+      dockerfile: example/Dockerfile
     env_file:
       - ./docker/orchestrator-ui/orchestrator-ui.env
       - path: ./docker/overrides/orchestrator-ui/orchestrator-ui.env

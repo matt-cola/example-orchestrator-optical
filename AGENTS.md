@@ -70,7 +70,9 @@ path; it is what lets this pre-1.0 harness apply the module's generated baseline
   credentials are documented in `docker/overrides/orchestrator.env.example`.
 - Compose variables: `BIND_ADDRESS_<SERVICE>` (loopback bind, incl. `BIND_ADDRESS_ORCHESTRATOR_DEBUGPY`), `POSTGRES_PORT` (5433), `ORCH_BACKEND_TAG`
   (default `ghcr.io/workfloworchestrator/orchestrator-core:5.6.0`), `ORCH_UI_TAG`
-  (default `ghcr.io/workfloworchestrator/example-orchestrator-ui:latest`), `OPTICAL_MODULE_DIR`.
+  (default `orchestrator-optical-ui:local`, built by `docker compose build orchestrator-ui` from
+  `OPTICAL_UI_LIBRARY_DIR`, default `../orchestrator-optical-ui-library`: the stock example-orchestrator-ui plus the
+  optical map page at `/optical-map`), `OPTICAL_MODULE_DIR`.
 
 ## Migrations
 
