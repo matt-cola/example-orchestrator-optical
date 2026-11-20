@@ -121,8 +121,20 @@ from orchestrator.core.workflows import LazyWorkflowInstance
 )
 (
     LazyWorkflowInstance(
+        "orchestrator.optical.workflows.optical_node.nokia_groove_g30.modify_nokia_groove_g30_config_override",
+        "modify_optical_node_nokia_groove_g30_config_override",
+    ),
+)
+(
+    LazyWorkflowInstance(
         "orchestrator.optical.workflows.optical_node.nokia_gx_g42.modify_nokia_gx_g42",
         "modify_optical_node_nokia_gx_g42",
+    ),
+)
+(
+    LazyWorkflowInstance(
+        "orchestrator.optical.workflows.optical_node.nokia_gx_g42.modify_nokia_gx_g42_config_override",
+        "modify_optical_node_nokia_gx_g42_config_override",
     ),
 )
 (
