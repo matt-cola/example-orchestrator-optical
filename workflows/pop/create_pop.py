@@ -66,7 +66,7 @@ def pop_resource_in_use(resource: str, value: str | int, exclude_subscription_id
         The conflicting subscription id, or None when the value is free.
     """
     instances = subscription_instances_by_block_type_and_resource_value(
-        "PoP",
+        "Pop",
         resource,
         str(value),
         [SubscriptionLifecycle.INITIAL, SubscriptionLifecycle.PROVISIONING, SubscriptionLifecycle.ACTIVE],
