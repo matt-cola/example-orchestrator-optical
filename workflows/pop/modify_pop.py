@@ -23,7 +23,7 @@ from pydantic import Field, model_validator
 from pydantic_forms.types import FormGenerator, State, UUIDstr
 from structlog import get_logger
 
-from products.product_types.pop import PoP
+from products.product_types.pop import Pop
 from workflows.pop.create_pop import pop_resource_in_use
 from workflows.pop.sync import (
     backward_sync_optical_block_to_pop_step,
@@ -58,7 +58,7 @@ Instruction = Annotated[
 
 
 def initial_input_form_generator(subscription_id: UUIDstr) -> FormGenerator:
-    subscription = PoP.from_subscription(subscription_id)
+    subscription = Pop.from_subscription(subscription_id)
     pop = subscription.pop
 
     class ModifyPopForm(FormPage):
@@ -102,7 +102,7 @@ def initial_input_form_generator(subscription_id: UUIDstr) -> FormGenerator:
 
 @step("Update subscription")
 def update_subscription(
-    subscription: PoP,
+    subscription: Pop,
     netbox_id: int | None,
     code: str | None,
     full_name: str | None,
@@ -132,7 +132,7 @@ def update_subscription(
 
 
 @step("Update subscription description")
-def update_subscription_description(subscription: PoP) -> State:
+def update_subscription_description(subscription: Pop) -> State:
     subscription.description = subscription_description(subscription)
     return {"subscription": subscription}
 

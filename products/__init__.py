@@ -11,6 +11,6 @@ import orchestrator.optical.products  # noqa: F401  Side-effects: registers the 
 from orchestrator.core.domain import SUBSCRIPTION_MODEL_REGISTRY
 
 from products.product_types.customer import Customer
-from products.product_types.pop import PoP
+from products.product_types.pop import Pop
 
-SUBSCRIPTION_MODEL_REGISTRY.update({"pop": PoP, "customer": Customer})
+SUBSCRIPTION_MODEL_REGISTRY.update({"pop": Pop, "customer": Customer})

@@ -159,9 +159,10 @@ There is no CRM: the orchestrator is the system of record for customers (consume
   created**.
 - Nothing links a customer to its subscriptions but the matching id, so `terminate_customer` refuses while the
   customer still owns non-terminated subscriptions.
-- `workflows/customer/graphql.py` (registered in `wsgi.py`) overrides core's stubbed subscription `customer` field
-  and `customers` query. The **process** `customer` field is not overridable through `register_graphql` and still
-  returns core's default customer.
+- `workflows/customer/graphql.py` (registered in `wsgi.py`) overrides core's stubbed subscription `customer` field.
+  Customers are listed by the generated `customerInstances` field (`products/block_instances.py`); core's `customers`
+  query and the **process** `customer` field (not overridable through `register_graphql`) still return core's default
+  customer.
 - The root block field is `customer_info`, not `customer`: a product block field named `customer` clashes with
   core's GraphQL `SubscriptionInterface.customer` and breaks the whole schema.
 

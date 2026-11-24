@@ -33,8 +33,8 @@ from orchestrator.optical.workflows.optical_location.create_optical_location imp
 from pydantic import TypeAdapter
 from pydantic_forms.types import State
 
-from products.product_blocks.pop import PoPBlockInactive
-from products.product_types.pop import PoP, PopProvisioning
+from products.product_blocks.pop import PopBlockInactive
+from products.product_types.pop import Pop, PopProvisioning
 
 _LOCATION_CODE_ADAPTER = TypeAdapter(LocationCode)
 
@@ -60,7 +60,7 @@ def normalize_location_code(code: str) -> LocationCode:
     return _LOCATION_CODE_ADAPTER.validate_python(normalized)
 
 
-def _require_pop_mirror_fields(pop: PoPBlockInactive) -> tuple[str, str, str, str]:
+def _require_pop_mirror_fields(pop: PopBlockInactive) -> tuple[str, str, str, str]:
     """Return the PoP mirror fields, raising a clear error when any is missing.
 
     The composed optical block requires all four from PROVISIONING on, so every
@@ -83,7 +83,7 @@ def _require_pop_mirror_fields(pop: PoPBlockInactive) -> tuple[str, str, str, st
 
 
 def forward_sync_pop_to_optical_block(
-    pop: PoPBlockInactive,
+    pop: PopBlockInactive,
     *,
     owner_subscription_id: str,
     status: SubscriptionLifecycle,
@@ -136,7 +136,7 @@ def forward_sync_pop_to_optical_block(
     return optical_module_block
 
 
-def backward_sync_optical_block_to_pop(pop: PoPBlockInactive) -> None:
+def backward_sync_optical_block_to_pop(pop: PopBlockInactive) -> None:
     """Copy the persisted optical block values back onto the PoP mirror fields.
 
     Selective by design: ``location_name`` and the coordinates flow back, but
@@ -160,7 +160,7 @@ def backward_sync_optical_block_to_pop(pop: PoPBlockInactive) -> None:
 
 
 @step("Forward sync PoP fields to optical location block")
-def forward_sync_pop_to_optical_block_step(subscription: PoP | PopProvisioning) -> State:
+def forward_sync_pop_to_optical_block_step(subscription: Pop | PopProvisioning) -> State:
     """Populate the composed optical block of the subscription in the state.
 
     Runs after the construct/update step (PoP-native fields are set) and before
@@ -182,7 +182,7 @@ def forward_sync_pop_to_optical_block_step(subscription: PoP | PopProvisioning) 
 
 
 @step("Backward sync optical location block to PoP fields")
-def backward_sync_optical_block_to_pop_step(subscription: PoP | PopProvisioning) -> State:
+def backward_sync_optical_block_to_pop_step(subscription: Pop | PopProvisioning) -> State:
     """Copy the composed optical block values back onto the PoP mirror fields.
 
     Runs after the subscription (and its composed tree) is saved, keeping the

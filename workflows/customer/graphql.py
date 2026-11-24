@@ -1,29 +1,23 @@
-"""GraphQL customer resolution backed by the customer subscriptions.
+"""GraphQL customer of a subscription, backed by the customer subscriptions.
 
-orchestrator-core has no customer store: its ``customer`` fields and its
-``customers`` query always return the single default customer from the
-settings. This module resolves them from the consumer-owned ``customer``
-product instead, and is passed to ``app.register_graphql()`` in ``wsgi.py``.
+orchestrator-core has no customer store: its subscription ``customer`` field
+always returns the single default customer from the settings. This module
+resolves it from the consumer-owned ``customer`` product instead, and is passed
+to ``app.register_graphql()`` in ``wsgi.py``. Customers themselves are listed by
+the generated ``customerInstances`` field (``products/block_instances.py``).
 
 It lives under ``workflows/`` only because that directory is mounted into the
 orchestrator container (and watched by ``uvicorn --reload``).
 """
 
 import strawberry
-from oauth2_lib.strawberry import authenticated_field
-from orchestrator.core.graphql.pagination import Connection
-from orchestrator.core.graphql.schema import Mutation, OrchestratorQuery, SearchQuery
 from orchestrator.core.graphql.schemas.customer import CustomerType
 from orchestrator.core.graphql.schemas.subscription import SubscriptionInterface
-from orchestrator.core.graphql.types import GraphqlFilter, GraphqlSort, OrchestratorInfo
-from orchestrator.core.graphql.utils.to_graphql_result_page import to_graphql_result_page
 from orchestrator.core.settings import app_settings
-from orchestrator.core.types import SubscriptionLifecycle
-from strawberry.tools import merge_types
 
 from workflows.customer.shared import find_customers
 
-__all__ = ["CustomerSubscriptionInterface", "Mutation", "Query"]
+__all__ = ["CustomerSubscriptionInterface"]
 
 
 def customer_type(customer_id: str) -> CustomerType:
@@ -50,27 +44,3 @@ class CustomerSubscriptionInterface(SubscriptionInterface):
     @strawberry.field(description="Returns customer of a subscription")  # type: ignore
     def customer(self) -> CustomerType:
         return customer_type(self.customer_id)
-
-
-async def resolve_customers(
-    info: OrchestratorInfo,
-    filter_by: list[GraphqlFilter] | None = None,
-    sort_by: list[GraphqlSort] | None = None,
-    first: int = 10,
-    after: int = 0,
-) -> Connection[CustomerType]:
-    customers = [
-        CustomerType(customer_id=customer.customer_id, fullname=customer.fullname, shortcode=customer.shortcode)
-        for customer in find_customers(statuses=[SubscriptionLifecycle.ACTIVE])
-    ]
-    return to_graphql_result_page(customers[after : after + first], first, after, len(customers))
-
-
-@strawberry.federation.type(description="Orchestrator customer Query")
-class CustomerQuery:
-    customers: Connection[CustomerType] = authenticated_field(
-        resolver=resolve_customers, description="Returns the active customers"
-    )
-
-
-Query: type = merge_types("Query", (OrchestratorQuery, CustomerQuery, SearchQuery))

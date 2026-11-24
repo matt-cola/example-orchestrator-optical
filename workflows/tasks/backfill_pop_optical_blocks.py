@@ -19,7 +19,7 @@ from pydantic_forms.types import State
 from sqlalchemy import select
 from structlog import get_logger
 
-from products.product_types.pop import PoP
+from products.product_types.pop import Pop
 from workflows.pop.sync import backward_sync_optical_block_to_pop, forward_sync_pop_to_optical_block
 
 logger = get_logger(__name__)
@@ -43,7 +43,7 @@ def backfill_blocks() -> State:
     for subscription_id in ids:
         sid = str(subscription_id)
         try:
-            subscription = PoP.from_subscription(sid)
+            subscription = Pop.from_subscription(sid)
             forward_sync_pop_to_optical_block(
                 subscription.pop,
                 owner_subscription_id=sid,

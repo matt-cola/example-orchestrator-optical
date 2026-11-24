@@ -18,20 +18,20 @@ from orchestrator.optical.workflows.optical_location.validate_optical_location i
 from pydantic_forms.types import State
 from structlog import get_logger
 
-from products.product_types.pop import PoP
+from products.product_types.pop import Pop
 
 logger = get_logger(__name__)
 
 
 @step("Load initial state")
-def load_initial_state_pop(subscription: PoP) -> State:
+def load_initial_state_pop(subscription: Pop) -> State:
     return {
         "subscription": subscription,
     }
 
 
 @step("Validate composed optical location block")
-def validate_composed_optical_location_block(subscription: PoP) -> State:
+def validate_composed_optical_location_block(subscription: Pop) -> State:
     """Validate the composed optical location block of the subscription.
 
     This is the contract gate: every ACTIVE PoP is expected to carry a fully

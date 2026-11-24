@@ -8,16 +8,16 @@ Copied verbatim from the GARR Workflow Orchestrator
 from orchestrator.core.domain import SubscriptionModel
 from orchestrator.core.types import SubscriptionLifecycle
 
-from products.product_blocks.pop import PoPBlock, PoPBlockInactive, PoPBlockProvisioning
+from products.product_blocks.pop import PopBlock, PopBlockInactive, PopBlockProvisioning
 
 
 class PopInactive(SubscriptionModel, is_base=True):
-    pop: PoPBlockInactive
+    pop: PopBlockInactive
 
 
 class PopProvisioning(PopInactive, lifecycle=[SubscriptionLifecycle.PROVISIONING]):
-    pop: PoPBlockProvisioning
+    pop: PopBlockProvisioning
 
 
-class PoP(PopProvisioning, lifecycle=[SubscriptionLifecycle.ACTIVE]):
-    pop: PoPBlock
+class Pop(PopProvisioning, lifecycle=[SubscriptionLifecycle.ACTIVE]):
+    pop: PopBlock

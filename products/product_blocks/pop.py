@@ -32,7 +32,7 @@ from orchestrator.optical.utils.custom_types.coordinates import LatitudeCoordina
 from pydantic import computed_field
 
 
-class PoPBlockInactive(ProductBlockModel, product_block_name="PoP"):
+class PopBlockInactive(ProductBlockModel, product_block_name="PoP"):
     netbox_id: int | None = None
     code: str | None = None
     full_name: str | None = None
@@ -41,7 +41,7 @@ class PoPBlockInactive(ProductBlockModel, product_block_name="PoP"):
     optical_location: OpticalModuleLocationBlockInactive | None = None
 
 
-class PoPBlockProvisioning(PoPBlockInactive, lifecycle=[SubscriptionLifecycle.PROVISIONING]):
+class PopBlockProvisioning(PopBlockInactive, lifecycle=[SubscriptionLifecycle.PROVISIONING]):
     netbox_id: int
     code: str | None = None
     full_name: str | None = None
@@ -50,7 +50,7 @@ class PoPBlockProvisioning(PoPBlockInactive, lifecycle=[SubscriptionLifecycle.PR
     optical_location: OpticalModuleLocationBlockProvisioning | None = None
 
 
-class PoPBlock(PoPBlockProvisioning, lifecycle=[SubscriptionLifecycle.ACTIVE]):
+class PopBlock(PopBlockProvisioning, lifecycle=[SubscriptionLifecycle.ACTIVE]):
     netbox_id: int
     code: str
     full_name: str

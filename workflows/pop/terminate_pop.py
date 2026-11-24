@@ -16,7 +16,7 @@ from orchestrator.core.workflows.utils import terminate_workflow
 from pydantic_forms.types import InputForm, State, UUIDstr
 from structlog import get_logger
 
-from products.product_types.pop import PoP
+from products.product_types.pop import Pop
 
 logger = get_logger(__name__)
 
@@ -31,7 +31,7 @@ def terminate_initial_input_form_generator(subscription_id: UUIDstr, customer_id
 
 
 @step("Delete subscription from OSS/BSS")
-def delete_subscription_from_oss_bss(subscription: PoP) -> State:
+def delete_subscription_from_oss_bss(subscription: Pop) -> State:
     # TODO: add actual call to OSS/BSS to delete subscription
 
     return {}
